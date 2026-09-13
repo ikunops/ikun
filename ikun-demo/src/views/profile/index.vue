@@ -90,7 +90,7 @@ async function logout() {
 
         <!-- 身份证入口 -->
         <div class="idc-entry" @click="router.push('/id-card')">
-          <div class="idc-scale">
+          <div class="idc-wrap">
             <IdCard
               :nickname="user.nickname"
               :id-number="user.idNumber"
@@ -206,11 +206,6 @@ async function logout() {
 .idc-entry {
   margin: 14px 0;
   cursor: pointer;
-
-  .idc-scale {
-    transform: scale(0.86);
-    transform-origin: top center;
-  }
 
   .idc-hint {
     display: flex;
@@ -328,8 +323,5 @@ async function logout() {
     align-items: start;
   }
 
-  .idc-entry {
-    max-width: 480px;
-  }
 }
 </style>
