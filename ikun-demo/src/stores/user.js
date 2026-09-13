@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { nextIdNumber } from '@/mock/users'
+import { useAdminStore } from './admin'
 
 const STORAGE_KEY = 'ikun-demo-user-v1'
 
@@ -22,7 +22,9 @@ function seedCheckins(n = 12) {
 export const useUserStore = defineStore('user', {
   state: () => ({
     isLoggedIn: false,
+    username: '',
     phone: '',
+    email: '',
     nickname: '',
     avatarType: 'default', // default | custom
     avatarCode: '',
@@ -50,36 +52,72 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
-    login(phone) {
+    // 昵称 + 密码登录(users 表校验,按账号档案 hydrate 会话)
+    loginByPassword(username, password) {
+      const admin = useAdminStore()
+      admin.restore()
+      const u = admin.users.find((x) => x.username === username)
+      if (!u) return { ok: false, msg: '昵称不存在,先注册' }
+      if (u.password !== password) return { ok: false, msg: '密码错误' }
+      if (u.banned) return { ok: false, msg: '该账号已被封禁,联系大长老' }
+      if (u.id === 0) return { ok: false, msg: '宗主为保留席位,不可登录' }
+
       this.isLoggedIn = true
-      this.phone = phone
-      this.nickname = 'ikun_' + phone.slice(-4)
-      this.idNumber = nextIdNumber()
-      this.joinedAt = new Date().toISOString().slice(0, 10)
-      this.checkins = seedCheckins()
+      this.username = u.username
+      this.phone = u.phone || ''
+      this.email = u.email || ''
+      this.nickname = u.nickname
+      this.idNumber = u.idNumber
+      this.joinedAt = u.joinedAt
+      this.avatarType = 'default'
+      this.avatarCode = u.avatarCode
+      this.customAvatar = ''
+      this.checkins = seedCheckins(u.checkinDays || 0)
+      this.featured = u.featured || 0
+      this.contributionBonus = 0
+      this.hasIdCard = true
+      this.roleType = u.roleType
+      this.persist()
+      return { ok: true }
+    },
+
+    // 注册:昵称即用户名,写入 users 表;新号走选头像→领身份证流程
+    registerAccount(username, password) {
+      const admin = useAdminStore()
+      admin.restore()
+      if (!/^[\u4e00-\u9fa5\w·]{2,12}$/.test(username)) {
+        return { ok: false, msg: '昵称 2-12 位(中文/字母/数字)' }
+      }
+      if (admin.users.some((x) => x.username === username)) {
+        return { ok: false, msg: '该昵称已被占用' }
+      }
+      if ((password || '').length < 6) {
+        return { ok: false, msg: '密码至少 6 位' }
+      }
+      const rec = admin.registerAccount(username, password)
+
+      this.isLoggedIn = true
+      this.username = rec.username
+      this.phone = ''
+      this.email = ''
+      this.nickname = rec.nickname
+      this.idNumber = rec.idNumber
+      this.joinedAt = rec.joinedAt
+      this.avatarType = 'default'
+      this.avatarCode = ''
+      this.customAvatar = ''
+      this.checkins = []
       this.featured = 0
       this.contributionBonus = 0
       this.hasIdCard = false
-      // 演示设定:体验号默认带大长老身份(设计文档·二:大长老=用户本人),可进后台
-      this.roleType = 'grand_elder'
+      this.roleType = 'user'
       this.persist()
+      return { ok: true }
     },
-    // 大长老体验号:IKUN-000001,Lv5.5,解锁全部边框,直接进社区
+
+    // 大长老快捷登录 = 表账号直达
     loginAsElder() {
-      this.isLoggedIn = true
-      this.phone = '13800000001'
-      this.nickname = '大长老'
-      this.idNumber = 'IKUN-000001'
-      this.joinedAt = '2023-01-01'
-      this.avatarType = 'default'
-      this.avatarCode = 'E03'
-      this.customAvatar = ''
-      this.checkins = seedCheckins(66)
-      this.featured = 6
-      this.contributionBonus = 0
-      this.hasIdCard = true
-      this.roleType = 'grand_elder'
-      this.persist()
+      return this.loginByPassword('大长老', '123456')
     },
     setNickname(name) {
       const n = (name || '').trim()

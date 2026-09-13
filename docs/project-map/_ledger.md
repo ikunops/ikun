@@ -9,7 +9,7 @@
 | B-1 | 数据层 stores(user/level/border/posts/notify/admin) | ✅ | admin 含权限矩阵 PERMS + 审批流 + 活动运营 |
 | B-1.1 | mock 7 文件(levels/avatars/borders/users/posts/activities/boards) | ✅ | activities 迁入 admin store 播种;api 仅剩 fetchAnnouncements |
 | F-1 | 路由 20+ 条 + 三段式守卫 + /admin 管理员守卫 | ✅ | 大长老/核心长老放行 |
-| F-2~F-6 | 流程页 splash/login/avatar-select/id-card-issue/id-card | ✅ | login 新增大长老一键登录(IKUN-000001, Lv5.5, 66天) |
+| F-2~F-6 | 流程页 splash/login/avatar-select/id-card-issue/id-card | ✅ | 登录改为昵称+密码(users 表含用户名/密码/手机/邮箱),注册走表单;保留大长老一键 |
 | F-7 | home 首页 | ✅ | 品牌图 logo + 站点公告(管理端下发)插 banner 首 |
 | F-8 | circles 圈子列表 + circle-detail 板块详情 | ✅ | 二期;动态计数 + FAB 发帖 |
 | F-9 | checkin 打卡 | ✅ | 活动源 = admin store(运营发布实时同步) |

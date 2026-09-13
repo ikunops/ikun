@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ACTIVITIES } from '@/mock/activities'
 import { BOARDS } from '@/mock/boards'
+import { SEED_USERS } from '@/mock/users'
 import {
   BORDERS as BORDERS_SEED,
   registerCustomBorders,
@@ -47,14 +48,7 @@ export const HOT_POST_LIKES = 100
 
 // users 表镜像:被管理用户(演示数据,宗主/大长老保留号不可封)
 function seedUsers() {
-  return [
-    { id: 0, idNumber: 'IKUN-000000', nickname: '宗主', avatarCode: 'A02', level: 5, subLevel: '5.6', title: '宗主', roleType: 'sect_master', banned: false, reserved: true, checkinDays: 0, contribution: 0, featured: 0 },
-    { id: 1, idNumber: 'IKUN-000001', nickname: '大长老(我)', avatarCode: 'E03', level: 5, subLevel: '5.5', title: '大长老', roleType: 'grand_elder', banned: false, reserved: true, checkinDays: 66, contribution: 330, featured: 6 },
-    { id: 2, idNumber: 'IKUN-000002', nickname: '阿坤不打篮球', avatarCode: 'A01', level: 3, subLevel: null, title: '核心弟子', roleType: 'user', banned: false, checkinDays: 33, contribution: 190, featured: 2 },
-    { id: 3, idNumber: 'IKUN-000003', nickname: '两年半练习生', avatarCode: 'A02', level: 2, subLevel: null, title: '内门弟子', roleType: 'user', banned: false, checkinDays: 22, contribution: 110, featured: 1 },
-    { id: 4, idNumber: 'IKUN-000004', nickname: '鸡你太美·美', avatarCode: 'D03', level: 1, subLevel: null, title: '外门弟子', roleType: 'user', banned: false, checkinDays: 12, contribution: 60, featured: 0 },
-    { id: 5, idNumber: 'IKUN-000005', nickname: '背带裤政委', avatarCode: 'E01', level: 4, subLevel: null, title: '亲传弟子', roleType: 'user', banned: false, checkinDays: 45, contribution: 240, featured: 3 },
-  ]
+  return SEED_USERS.map((u) => ({ banned: false, ...u }))
 }
 
 export const useAdminStore = defineStore('admin', {
@@ -110,18 +104,21 @@ export const useAdminStore = defineStore('admin', {
       this.persist()
     },
     persist() {
-      localStorage.setItem(KEY, JSON.stringify({
-        users: this.users,
-        approvals: this.approvals,
-        logs: this.logs,
-        activities: this.activities,
-        boards: this.boards,
-        customBorders: this.customBorders,
-        customAvatars: this.customAvatars,
-        deletedBorderIds: this.deletedBorderIds,
-        deletedAvatarCodes: this.deletedAvatarCodes,
-        announcement: this.announcement,
-      }))
+      localStorage.setItem(
+        KEY,
+        JSON.stringify({
+          users: this.users,
+          approvals: this.approvals,
+          logs: this.logs,
+          activities: this.activities,
+          boards: this.boards,
+          customBorders: this.customBorders,
+          customAvatars: this.customAvatars,
+          deletedBorderIds: this.deletedBorderIds,
+          deletedAvatarCodes: this.deletedAvatarCodes,
+          announcement: this.announcement,
+        })
+      )
     },
     log(text) {
       this.logs.unshift({ id: 'l' + Date.now(), text, ts: Date.now() })
@@ -142,6 +139,61 @@ export const useAdminStore = defineStore('admin', {
       this.persist()
       return true
     },
+
+    // 注册:昵称即用户名,进 users 表(后台用户管理可见)
+    registerAccount(username, password) {
+      const id = Math.max(0, ...this.users.map((u) => u.id)) + 1
+      const rec = {
+        id,
+        username,
+        password, // # ponytail: 明文演示,接后端换 bcrypt
+        phone: '',
+        email: '',
+        idNumber: 'IKUN-' + String(id).padStart(6, '0'),
+        nickname: username,
+        roleType: 'user',
+        avatarCode: 'A01',
+        subLevel: null,
+        title: '预备弟子',
+        level: 0,
+        checkinDays: 0,
+        contribution: 0,
+        featured: 0,
+        joinedAt: new Date().toISOString().slice(0, 10),
+        banned: false,
+      }
+      this.users.push(rec)
+      this.log(`新用户注册「${username}」(${rec.idNumber})`)
+      this.persist()
+      return rec
+    },
+    updateContact(username, { phone, email }) {
+      const u = this.users.find((x) => x.username === username)
+      if (!u) return false
+      if (phone !== undefined) u.phone = phone
+      if (email !== undefined) u.email = email
+      this.persist()
+      return true
+    },
+    // 通用档案更新(昵称/联系方式/等级/角色/密码等),记操作日志
+    updateUser(userId, patch, why = '') {
+      const u = this.users.find((x) => x.id === userId)
+      if (!u || u.reserved) return false
+      Object.assign(u, patch)
+      const keys = Object.keys(patch).join('/')
+      this.log(`更新了「${u.nickname}」的资料(${keys})${why ? ' · ' + why : ''}`)
+      this.persist()
+      return true
+    },
+    removeUser(userId) {
+      const u = this.users.find((x) => x.id === userId)
+      if (!u || u.reserved) return false
+      this.users = this.users.filter((x) => x.id !== userId)
+      this.log(`删除了用户「${u.nickname}」(${u.idNumber})`)
+      this.persist()
+      return true
+    },
+
     toggleBan(userId) {
       const u = this.users.find((x) => x.id === userId)
       if (!u || u.reserved) return false

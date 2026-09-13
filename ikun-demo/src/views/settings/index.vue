@@ -3,17 +3,36 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
-import { PenLine, Gem, Bird, Info, Trash2 } from 'lucide-vue-next'
+import { PenLine, Gem, Bird, Info, Trash2, Smartphone, Mail } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/user'
+import { useAdminStore } from '@/stores/admin'
 
 const router = useRouter()
 const user = useUserStore()
+const admin = useAdminStore()
+admin.restore()
 
 const nick = ref(user.nickname)
+const rec = admin.users.find((x) => x.username === user.username)
+const phone = ref(rec?.phone || '')
+const email = ref(rec?.email || '')
 
 function saveNick() {
-  if (user.setNickname(nick.value)) showToast('昵称已更新')
-  else showToast('昵称不能为空')
+  if (user.setNickname(nick.value)) {
+    const u = admin.users.find((x) => x.username === user.username)
+    if (u) u.nickname = user.nickname
+    admin.persist()
+    showToast('昵称已更新')
+  } else {
+    showToast('昵称不能为空')
+  }
+}
+
+function saveContact() {
+  admin.updateContact(user.username, { phone: phone.value.trim(), email: email.value.trim() })
+  user.phone = phone.value.trim()
+  user.email = email.value.trim()
+  showToast('联系方式已保存')
 }
 
 async function resetAll() {
@@ -45,6 +64,18 @@ async function resetAll() {
       <span class="label">昵称</span>
       <input v-model="nick" type="text" maxlength="12" />
       <button class="save" @click="saveNick"><PenLine :size="14" :stroke-width="2.4" /> 保存</button>
+    </div>
+
+    <div class="ik-card contact-card">
+      <div class="c-row">
+        <span class="c-label"><Smartphone :size="15" :stroke-width="2.2" /> 手机号</span>
+        <input v-model="phone" type="tel" maxlength="11" placeholder="选填" />
+      </div>
+      <div class="c-row">
+        <span class="c-label"><Mail :size="15" :stroke-width="2.2" /> 邮箱</span>
+        <input v-model="email" type="email" maxlength="40" placeholder="选填" />
+      </div>
+      <button class="c-save" @click="saveContact">保存联系方式</button>
     </div>
 
     <div class="menu ik-card">
@@ -138,6 +169,54 @@ async function resetAll() {
       transform: translate(2px, 2px);
       box-shadow: none;
     }
+  }
+}
+
+.contact-card {
+  padding: 14px;
+
+  .c-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+
+    .c-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 76px;
+      flex-shrink: 0;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-2);
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      outline: none;
+    }
+  }
+
+  .c-save {
+    margin-top: 8px;
+    width: 100%;
+    padding: 10px 0;
+    font-size: 13px;
+    font-weight: 800;
+    color: #221a05;
+    background: var(--brand-grad);
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(255, 176, 31, 0.35);
+    cursor: pointer;
   }
 }
 
