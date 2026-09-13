@@ -130,6 +130,7 @@ export const useAdminStore = defineStore('admin', {
         avatarType: 'default',
         customAvatar: '',
         hasIdCard: false,
+        participations: [], // 参与过的活动 id
         phone: '',
         email: '',
         joinedAt: new Date().toISOString().slice(0, 10),
@@ -374,6 +375,7 @@ export const useAdminStore = defineStore('admin', {
         avatarType: 'default',
         customAvatar: '',
         hasIdCard: false,
+        participations: [],
         phone: '',
         email: '',
         joinedAt: new Date().toISOString().slice(0, 10),
@@ -388,6 +390,18 @@ export const useAdminStore = defineStore('admin', {
     },
     findOAuthUser(provider, openid) {
       return this.users.find((x) => x.provider === provider && x.openid === openid) || null
+    },
+
+    toggleParticipation(nickname, activityId) {
+      const u = this.users.find((x) => x.nickname === nickname)
+      if (!u) return false
+      if (u.participations.includes(activityId)) {
+        u.participations = u.participations.filter((x) => x !== activityId)
+      } else {
+        u.participations.push(activityId)
+      }
+      this.persist()
+      return true
     },
 
     // —— 系统设置 ——

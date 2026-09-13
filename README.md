@@ -21,6 +21,22 @@ npm run build    # 生产构建 → dist/
 npm run preview  # 本地预览构建产物
 ```
 
+## 部署(Linux 一键)
+
+`ikun-demo/deploy.sh`:有现成 `dist/` 直接起服务(服务器无需 Node),没有则自动构建;优先 python3 静态服务,回退 npx serve。hash 路由,无需任何 rewrite 配置。
+
+```bash
+# 服务器有 Node(18+):克隆即部署
+git clone https://github.com/ikunops/ikun.git
+cd ikun/ikun-demo && ./deploy.sh            # 默认 8080,可传端口
+
+# 服务器零依赖:本地构建产物包,scp 上去解压即跑
+(cd ikun-demo && npm run build && tar -czf ikun-demo-linux.tar.gz dist deploy.sh README.md)
+nohup ./deploy.sh 8080 > ikun.log 2>&1 &    # 后台常驻
+```
+
+详见 [ikun-demo/README.md](ikun-demo/README.md)。
+
 ## 账号体系
 
 昵称 + 密码登录/注册(users 表:用户名/密码/手机/邮箱/等级/编号等字段)。

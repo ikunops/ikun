@@ -15,6 +15,10 @@ const emit = defineEmits(['open'])
 const router = useRouter()
 const store = usePostsStore()
 
+function goUser() {
+  router.push('/u/' + encodeURIComponent(props.post.author.nickname))
+}
+
 const IMG_ICONS = { mic: Mic, ball: Volleyball, star: Star, bulb: Lightbulb, horn: Megaphone, gem: Gem }
 
 const timeText = computed(() => formatTime(props.post))
@@ -25,15 +29,17 @@ const mine = computed(() => props.post.author?.avatarType === 'custom')
 <template>
   <div class="pc ik-card" :class="{ clickable: link }" @click="link && emit('open')">
     <div class="pc-head">
-      <AvatarWithBorder
-        :avatar-code="post.author.avatarCode"
-        :avatar-type="post.author.avatarType || 'default'"
-        :custom-avatar="post.author.customAvatar || ''"
-        border-id="b-gray"
-        :size="40"
-      />
+      <span class="pc-avatar" title="查看主页" @click.stop="goUser">
+        <AvatarWithBorder
+          :avatar-code="post.author.avatarCode"
+          :avatar-type="post.author.avatarType || 'default'"
+          :custom-avatar="post.author.customAvatar || ''"
+          border-id="b-gray"
+          :size="40"
+        />
+      </span>
       <div class="pc-who">
-        <span class="pc-name">{{ post.author.nickname }}</span>
+        <span class="pc-name" @click.stop="goUser">{{ post.author.nickname }}</span>
         <span class="pc-title" :style="{ background: post.author.color }">{{ post.author.title }}</span>
       </div>
       <span class="pc-time">{{ timeText }}</span>
@@ -69,6 +75,7 @@ const mine = computed(() => props.post.author?.avatarType === 'custom')
         <Bookmark :size="15" :stroke-width="2.4" :fill="post.fav ? 'currentColor' : 'none'" />
         收藏
       </button>
+      <slot name="foot-extra"></slot>
       <span v-if="post.featured" class="pc-featured"><Star :size="12" :stroke-width="2.6" /> 加精</span>
     </div>
   </div>
@@ -99,6 +106,15 @@ const mine = computed(() => props.post.author?.avatarType === 'custom')
 .pc-name {
   font-size: 14px;
   font-weight: 800;
+}
+
+.pc-avatar {
+  display: block;
+  cursor: pointer;
+}
+
+.pc-name {
+  cursor: pointer;
 }
 
 .pc-title {

@@ -47,10 +47,13 @@ const routes = [
     component: () => import('@/views/settings/index.vue'),
   },
   {
-    path: '/my-content',
-    name: 'my-content',
-    component: () => import('@/views/my-content/index.vue'),
+    path: '/u/:name',
+    name: 'user-home',
+    component: () => import('@/views/user-home/index.vue'),
   },
+  // 旧入口(我的页 / 我的内容页)已并入用户主页,一律重定向到自己
+  { path: '/profile', redirect: () => '/u/' + encodeURIComponent(useUserStore().nickname) },
+  { path: '/my-content', redirect: () => '/u/' + encodeURIComponent(useUserStore().nickname) },
   {
     path: '/admin',
     component: () => import('@/views/admin/AdminLayout.vue'),
@@ -71,7 +74,6 @@ const routes = [
   { path: '/circles', name: 'circles', component: () => import('@/views/circles/index.vue'), meta: { tab: true } },
   { path: '/checkin', name: 'checkin', component: () => import('@/views/checkin/index.vue'), meta: { tab: true } },
   { path: '/messages', name: 'messages', component: () => import('@/views/messages/index.vue'), meta: { tab: true } },
-  { path: '/profile', name: 'profile', component: () => import('@/views/profile/index.vue'), meta: { tab: true } },
 ]
 
 const router = createRouter({

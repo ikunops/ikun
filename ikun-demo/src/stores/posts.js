@@ -48,11 +48,23 @@ export const usePostsStore = defineStore('posts', {
   getters: {
     byBoard: (s) => (key) => s.list.filter((p) => p.board === key),
     byId: (s) => (id) => s.list.find((p) => String(p.id) === String(id)),
-    mine: (s) => {
-      const user = useUserStore()
-      return s.list.filter((p) => p.author.nickname === user.nickname)
-    },
+    byAuthor: (s) => (nick) => s.list.filter((p) => p.author.nickname === nick),
     favorites: (s) => s.list.filter((p) => p.fav),
+    // 某用户发过的评论(引用所在帖子);includePrivate=false 时仅统计公开帖
+    commentsBy: (s) => (nick, includePrivate) =>
+      s.list
+        .filter((p) => includePrivate || p.visibility === 'public')
+        .flatMap((p) => {
+          const out = []
+          for (const c of p.comments || []) {
+            if (c.user.nickname === nick) out.push({ post: p, id: c.id, text: c.text, ts: c.ts })
+            for (const r of c.replies || []) {
+              if (r.user.nickname === nick) out.push({ post: p, id: r.id, text: r.text, ts: r.ts })
+            }
+          }
+          return out
+        })
+        .sort((a, b) => b.ts - a.ts),
   },
 
   actions: {
@@ -106,13 +118,22 @@ export const usePostsStore = defineStore('posts', {
       this.persist()
       return p.fav
     },
+    // 自己主页切换可见性(公开 → 好友 → 私密 → 公开)
+    cycleVisibility(id) {
+      const order = ['public', 'friends', 'private']
+      const p = this.byId(id)
+      if (!p) return
+      p.visibility = order[(order.indexOf(p.visibility || 'public') + 1) % 3]
+      this.persist()
+    },
 
-    addPost({ board, content, images }) {
+    addPost({ board, content, images, visibility = 'public' }) {
       const post = {
         id: 'u' + ++seq,
         board,
         content,
         images: images || [],
+        visibility, // public | friends | private
         ts: Date.now(),
         likes: 0,
         liked: false,

@@ -3,7 +3,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import { ImagePlus, Delete, PenLine } from 'lucide-vue-next'
+import { ImagePlus, Delete, PenLine, Globe, UsersRound, Lock } from 'lucide-vue-next'
 import { usePostsStore } from '@/stores/posts'
 import { useUserStore } from '@/stores/user'
 import { useLevelStore } from '@/stores/level'
@@ -23,6 +23,12 @@ const admin = useAdminStore()
 
 const board = ref(route.query.board ? String(route.query.board) : 'meitu')
 const content = ref('')
+const visibility = ref('public') // public | friends | private
+const VIS = [
+  { v: 'public', label: '公开', icon: Globe },
+  { v: 'friends', label: '好友', icon: UsersRound },
+  { v: 'private', label: '私密', icon: Lock },
+]
 const images = ref([]) // dataURL 列表
 const fileRef = ref(null)
 const posting = ref(false)
@@ -78,7 +84,7 @@ function submit() {
   }
   posting.value = true
   const before = level.info
-  posts.addPost({ board: board.value, content: content.value.trim(), images: [...images.value] })
+  posts.addPost({ board: board.value, content: content.value.trim(), images: [...images.value], visibility: visibility.value })
   border.syncDefault()
   const after = level.info
   if (after.level > before.level) {
@@ -92,6 +98,21 @@ function submit() {
 <template>
   <div class="page pc-create">
     <van-nav-bar title="发动态" left-arrow @click-left="router.back()" />
+
+    <!-- 可见性 -->
+    <div class="sec-label"><Globe :size="14" :stroke-width="2.4" /> 谁可以看</div>
+    <div class="chips">
+      <button
+        v-for="v in VIS"
+        :key="v.v"
+        class="chip"
+        :class="{ active: visibility === v.v }"
+        @click="visibility = v.v"
+      >
+        <component :is="v.icon" :size="13" :stroke-width="2.4" />
+        {{ v.label }}
+      </button>
+    </div>
 
     <!-- 板块选择 -->
     <div class="sec-label"><PenLine :size="14" :stroke-width="2.4" /> 选择板块</div>

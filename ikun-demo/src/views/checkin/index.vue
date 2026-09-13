@@ -59,8 +59,9 @@ function doCheckin() {
   }
 }
 
-function joinActivity() {
-  showToast('活动打卡第二期上线,先每日签到攒贡献吧')
+function joinActivity(a) {
+  user.joinLeaveActivity(a.id)
+  showToast(a.participations?.includes(a.id) ? '已取消参与' : '参与成功,记录已同步到你的主页')
 }
 </script>
 
@@ -114,7 +115,13 @@ function joinActivity() {
           <p class="act-desc">{{ a.desc }}</p>
           <div class="act-foot">
             <span class="act-reward">{{ a.reward }} · {{ a.deadline }}</span>
-            <button class="ik-btn small" @click="joinActivity">参与</button>
+            <button
+              class="ik-btn small"
+              :class="{ ghost: user.participations.includes(a.id) }"
+              @click="joinActivity(a)"
+            >
+              {{ user.participations.includes(a.id) ? '已参与·取消' : '参与' }}
+            </button>
           </div>
         </div>
       </div>

@@ -1,12 +1,15 @@
 <script setup>
 // TabBar 双形态:<768px 底部栏(van-tabbar),≥1200px 左侧导航栏(自绘 rail)
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Home, Users, CalendarCheck, Bell, CircleUserRound } from 'lucide-vue-next'
 import { useNotifyStore } from '@/stores/notify'
+import { useUserStore } from '@/stores/user'
 
 const route = useRoute()
+const router = useRouter()
 const notify = useNotifyStore()
+const user = useUserStore()
 
 const TABS = [
   { to: '/home', label: '首页', icon: Home },
@@ -16,18 +19,24 @@ const TABS = [
   { to: '/profile', label: '我的', icon: CircleUserRound },
 ]
 
-const activeTo = computed(() => route.path)
+// 「我的」实际落在 /u/<自己>;逛别人主页时不点亮
+const activeIdx = computed(() => {
+  if (route.path.startsWith('/u/')) {
+    const isMe = decodeURIComponent(route.params.name || '') === user.nickname
+    return isMe ? TABS.length - 1 : -1
+  }
+  return TABS.findIndex((t) => t.to === route.path)
+})
 const hasUnread = computed(() => notify.unread > 0)
 </script>
 
 <template>
   <!-- 手机/平板:底部栏 -->
-  <van-tabbar route safe-area-inset-bottom class="tb">
+  <van-tabbar :model-value="activeIdx" safe-area-inset-bottom class="tb">
     <van-tabbar-item
       v-for="t in TABS"
       :key="t.to"
-      :to="t.to"
-      replace
+      @click="router.replace(t.to)"
       :dot="t.dot && hasUnread"
     >
       {{ t.label }}
@@ -40,11 +49,11 @@ const hasUnread = computed(() => notify.unread > 0)
   <!-- 桌面:左侧导航栏 -->
   <nav class="rail">
     <router-link
-      v-for="t in TABS"
+      v-for="(t, i) in TABS"
       :key="t.to"
       :to="t.to"
       class="rail-item"
-      :class="{ active: activeTo === t.to }"
+      :class="{ active: activeIdx === i }"
     >
       <span class="rail-icon">
         <component :is="t.icon" :size="22" :stroke-width="2.2" />

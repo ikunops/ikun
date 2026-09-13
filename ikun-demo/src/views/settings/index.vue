@@ -1,11 +1,12 @@
 <script setup>
-// 设置页:编辑资料(昵称)/ 头像与边框入口 / 清空演示数据 / 关于(第三期)
-import { ref } from 'vue'
+// 设置页:通用入口(头像/边框/留言板/身份证/后台/退出) / 编辑资料 / 数据 / 关于
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
-import { PenLine, Gem, Bird, Info, Trash2, Smartphone, Mail, LockKeyhole } from 'lucide-vue-next'
+import { PenLine, Gem, Bird, Info, Trash2, Smartphone, Mail, LockKeyhole, ShieldCheck, MessageSquare, LogOut, CreditCard, Medal } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/user'
 import { useAdminStore } from '@/stores/admin'
+import { remove as dbRemove } from '@/stores/db'
 
 const router = useRouter()
 const user = useUserStore()
@@ -19,14 +20,28 @@ const email = ref(rec?.email || '')
 const pw1 = ref('')
 const pw2 = ref('')
 
+const ADMIN_ENTRY = computed(() => ['grand_elder', 'core_elder'].includes(user.roleType))
+
+async function logout() {
+  try {
+    await showConfirmDialog({
+      title: '退出登录',
+      message: '确定退出当前账号?',
+      confirmButtonText: '退出',
+    })
+  } catch (e) {
+    return
+  }
+  user.reset()
+  router.replace('/login')
+}
+
 function saveNick() {
+  // user.setNickname 内部做唯一校验并写表+指针
   if (user.setNickname(nick.value)) {
-    const u = admin.users.find((x) => x.nickname === user.nickname)
-    if (u) u.nickname = user.nickname
-    admin.persist()
     showToast('昵称已更新')
   } else {
-    showToast('昵称不能为空')
+    showToast('昵称为空或已被占用')
   }
 }
 
@@ -67,6 +82,8 @@ async function resetAll() {
   localStorage.removeItem('ikun-demo-posts-v1')
   localStorage.removeItem('ikun-demo-notify-v1')
   localStorage.removeItem('ikun-demo-border-v1')
+  dbRemove('admin') // v2 用户表(唯一数据源)
+  dbRemove('session')
   router.replace('/login')
 }
 </script>
@@ -76,6 +93,46 @@ async function resetAll() {
     <van-nav-bar title="设置" left-arrow @click-left="router.back()" />
 
     <!-- 编辑资料 -->
+    <div class="sec-title">通用</div>
+    <div class="menu ik-card">
+      <button class="menu-item" @click="router.push('/avatar-select')">
+        <span class="mi-icon"><Bird :size="18" :stroke-width="2.2" /></span>
+        <span class="mi-label">更换工种头像</span>
+        <span class="mi-arrow">›</span>
+      </button>
+      <button class="menu-item" @click="router.push('/border-select')">
+        <span class="mi-icon"><Gem :size="18" :stroke-width="2.2" /></span>
+        <span class="mi-label">边框选择</span>
+        <span class="mi-arrow">›</span>
+      </button>
+      <button class="menu-item" @click="router.push('/guestbook?mine=1')">
+        <span class="mi-icon"><MessageSquare :size="18" :stroke-width="2.2" /></span>
+        <span class="mi-label">我的留言板</span>
+        <span class="mi-arrow">›</span>
+      </button>
+      <button class="menu-item" @click="router.push('/id-card')">
+        <span class="mi-icon"><CreditCard :size="18" :stroke-width="2.2" /></span>
+        <span class="mi-label">我的身份证</span>
+        <span class="mi-arrow">›</span>
+      </button>
+      <button class="menu-item" @click="router.push('/level')">
+        <span class="mi-icon"><Medal :size="18" :stroke-width="2.2" /></span>
+        <span class="mi-label">等级与成长体系</span>
+        <span class="mi-arrow">›</span>
+      </button>
+      <button v-if="ADMIN_ENTRY" class="menu-item" @click="router.push('/admin')">
+        <span class="mi-icon"><ShieldCheck :size="18" :stroke-width="2.2" /></span>
+        <span class="mi-label">管理后台</span>
+        <span class="mi-note">admin</span>
+        <span class="mi-arrow">›</span>
+      </button>
+      <button class="menu-item" @click="logout">
+        <span class="mi-icon"><LogOut :size="18" :stroke-width="2.2" /></span>
+        <span class="mi-label" style="color:var(--red)">退出登录</span>
+        <span class="mi-arrow">›</span>
+      </button>
+    </div>
+
     <div class="sec-title">编辑资料</div>
     <div class="ik-card nick-card">
       <span class="label">昵称</span>
@@ -106,19 +163,6 @@ async function resetAll() {
         <input v-model="pw2" type="password" maxlength="20" placeholder="再次输入" />
       </div>
       <button class="c-save" @click="savePassword">保存新密码</button>
-    </div>
-
-    <div class="menu ik-card">
-      <button class="menu-item" @click="router.push('/avatar-select')">
-        <span class="mi-icon"><Bird :size="18" :stroke-width="2.2" /></span>
-        <span class="mi-label">更换工种头像</span>
-        <span class="mi-arrow">›</span>
-      </button>
-      <button class="menu-item" @click="router.push('/border-select')">
-        <span class="mi-icon"><Gem :size="18" :stroke-width="2.2" /></span>
-        <span class="mi-label">边框选择</span>
-        <span class="mi-arrow">›</span>
-      </button>
     </div>
 
     <!-- 数据 -->
@@ -290,6 +334,16 @@ async function resetAll() {
 
     .mi-label {
       flex: 1;
+    }
+
+    .mi-note {
+      flex-shrink: 0;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 800;
+      color: #7a4d00;
+      background: rgba(255, 184, 0, 0.16);
+      border-radius: 999px;
     }
 
     .mi-arrow {

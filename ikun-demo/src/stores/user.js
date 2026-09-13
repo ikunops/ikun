@@ -72,6 +72,9 @@ export const useUserStore = defineStore('user', {
     checkedToday() {
       return this.checkins.includes(dayKey())
     },
+    participations() {
+      return this.rec?.participations || []
+    },
     stats() {
       return {
         checkinDays: this.checkinDays,
@@ -204,6 +207,10 @@ export const useUserStore = defineStore('user', {
         u.customAvatar = dataUrl
         admin.persist()
       }
+    },
+    joinLeaveActivity(activityId) {
+      const admin = useAdminStore()
+      admin.toggleParticipation(this.current, activityId)
     },
     reset() {
       this.current = ''
