@@ -3,7 +3,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showConfirmDialog, showToast } from 'vant'
-import { PenLine, Gem, Bird, Info, Trash2, Smartphone, Mail } from 'lucide-vue-next'
+import { PenLine, Gem, Bird, Info, Trash2, Smartphone, Mail, LockKeyhole } from 'lucide-vue-next'
 import { useUserStore } from '@/stores/user'
 import { useAdminStore } from '@/stores/admin'
 
@@ -16,6 +16,8 @@ const nick = ref(user.nickname)
 const rec = admin.users.find((x) => x.username === user.username)
 const phone = ref(rec?.phone || '')
 const email = ref(rec?.email || '')
+const pw1 = ref('')
+const pw2 = ref('')
 
 function saveNick() {
   if (user.setNickname(nick.value)) {
@@ -26,6 +28,21 @@ function saveNick() {
   } else {
     showToast('昵称不能为空')
   }
+}
+
+function savePassword() {
+  if ((pw1.value || '').length < 6) {
+    showToast('新密码至少 6 位')
+    return
+  }
+  if (pw1.value !== pw2.value) {
+    showToast('两次密码不一致')
+    return
+  }
+  admin.setOwnPassword(user.username, pw1.value)
+  pw1.value = ''
+  pw2.value = ''
+  showToast('密码已更新')
 }
 
 function saveContact() {
@@ -76,6 +93,19 @@ async function resetAll() {
         <input v-model="email" type="email" maxlength="40" placeholder="选填" />
       </div>
       <button class="c-save" @click="saveContact">保存联系方式</button>
+    </div>
+
+    <div class="ik-card contact-card">
+      <div class="c-title"><LockKeyhole :size="14" :stroke-width="2.4" /> 修改密码</div>
+      <div class="c-row">
+        <span class="c-label">新密码</span>
+        <input v-model="pw1" type="password" maxlength="20" placeholder="至少 6 位" />
+      </div>
+      <div class="c-row">
+        <span class="c-label">确认密码</span>
+        <input v-model="pw2" type="password" maxlength="20" placeholder="再次输入" />
+      </div>
+      <button class="c-save" @click="savePassword">保存新密码</button>
     </div>
 
     <div class="menu ik-card">
@@ -174,6 +204,16 @@ async function resetAll() {
 
 .contact-card {
   padding: 14px;
+
+  .c-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text-2);
+  }
 
   .c-row {
     display: flex;

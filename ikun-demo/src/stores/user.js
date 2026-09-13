@@ -119,6 +119,40 @@ export const useUserStore = defineStore('user', {
     loginAsElder() {
       return this.loginByPassword('大长老', '123456')
     },
+
+    // 第三方登录(微信/抖音):# ponytail: 模拟授权,真接入 = 跳开放平台授权页,
+    // 回调 code 由后端用 appSecret 换 openid(需企业资质+备案域名),替换本函数前半段即可
+    oauthLogin(provider) {
+      const key = 'ikun-oauth-' + provider
+      let openid = localStorage.getItem(key)
+      if (!openid) {
+        openid = provider.slice(0, 2) + '_' + Math.random().toString(16).slice(2, 6)
+        localStorage.setItem(key, openid)
+      }
+      const admin = useAdminStore()
+      admin.restore()
+      let u = admin.findOAuthUser(provider, openid)
+      if (!u) u = admin.registerOAuthUser(provider, openid)
+      if (u.banned) return { ok: false, msg: '该账号已被封禁,联系大长老' }
+
+      this.isLoggedIn = true
+      this.username = u.username
+      this.phone = u.phone || ''
+      this.email = u.email || ''
+      this.nickname = u.nickname
+      this.idNumber = u.idNumber
+      this.joinedAt = u.joinedAt
+      this.avatarType = 'default'
+      this.avatarCode = u.avatarCode
+      this.customAvatar = ''
+      this.checkins = seedCheckins(u.checkinDays || 0)
+      this.featured = u.featured || 0
+      this.contributionBonus = 0
+      this.hasIdCard = u.level > 0 || u.checkinDays > 0 // 首次 OAuth 建号走新人流程
+      this.roleType = u.roleType
+      this.persist()
+      return { ok: true, fresh: u.level === 0 && u.checkinDays === 0 }
+    },
     setNickname(name) {
       const n = (name || '').trim()
       if (!n) return false

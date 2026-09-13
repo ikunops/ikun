@@ -63,6 +63,7 @@ export const useAdminStore = defineStore('admin', {
     customAvatars: [], // 自定义工种头像 { code, job, category:'F', img }
     deletedBorderIds: [], // 已删除的预置边框(可恢复)
     deletedAvatarCodes: [], // 已删除的预置头像(可恢复)
+    loginMethods: { wechat: false, douyin: false }, // 第三方登录(功能已备,暂不开放)
     announcement: '', // 系统设置:站点公告(首页 banner 顶部展示)
   }),
 
@@ -90,6 +91,7 @@ export const useAdminStore = defineStore('admin', {
           this.customAvatars = d.customAvatars || []
           this.deletedBorderIds = d.deletedBorderIds || []
           this.deletedAvatarCodes = d.deletedAvatarCodes || []
+          this.loginMethods = d.loginMethods || { wechat: false, douyin: false }
           this.announcement = d.announcement || ''
           registerCustomBorders(this.customBorders)
           registerCustomAvatars(this.customAvatars)
@@ -116,6 +118,7 @@ export const useAdminStore = defineStore('admin', {
           customAvatars: this.customAvatars,
           deletedBorderIds: this.deletedBorderIds,
           deletedAvatarCodes: this.deletedAvatarCodes,
+          loginMethods: this.loginMethods,
           announcement: this.announcement,
         })
       )
@@ -167,6 +170,56 @@ export const useAdminStore = defineStore('admin', {
       this.persist()
       return rec
     },
+    setLoginMethod(key, enabled) {
+      this.loginMethods[key] = enabled
+      this.log(`第三方登录「${key === 'wechat' ? '微信' : '抖音'}」${enabled ? '开启' : '关闭'}`)
+      this.persist()
+    },
+
+    // 第三方 OAuth 首次登录:自动建号(昵称=平台用户_xxxx)
+    registerOAuthUser(provider, openid) {
+      const id = Math.max(0, ...this.users.map((u) => u.id)) + 1
+      const tag = openid.slice(-4)
+      const rec = {
+        id,
+        username: (provider === 'wechat' ? '微信用户_' : '抖音用户_') + tag,
+        password: Math.random().toString(36).slice(2), // 随机密码,该账号仅第三方登录
+        phone: '',
+        email: '',
+        provider,
+        openid,
+        idNumber: 'IKUN-' + String(id).padStart(6, '0'),
+        nickname: (provider === 'wechat' ? '微信用户_' : '抖音用户_') + tag,
+        roleType: 'user',
+        avatarCode: 'A01',
+        subLevel: null,
+        title: '预备弟子',
+        level: 0,
+        checkinDays: 0,
+        contribution: 0,
+        featured: 0,
+        joinedAt: new Date().toISOString().slice(0, 10),
+        banned: false,
+      }
+      this.users.push(rec)
+      this.log(`第三方登录自动建号「${rec.nickname}」(${rec.idNumber})`)
+      this.persist()
+      return rec
+    },
+    findOAuthUser(provider, openid) {
+      return this.users.find((x) => x.provider === provider && x.openid === openid) || null
+    },
+
+    // 本人改密(保留号也可,绕开 reserved 只读)
+    setOwnPassword(username, password) {
+      const u = this.users.find((x) => x.username === username)
+      if (!u) return false
+      u.password = password
+      this.log(`「${u.nickname}」修改了自己的密码`)
+      this.persist()
+      return true
+    },
+
     updateContact(username, { phone, email }) {
       const u = this.users.find((x) => x.username === username)
       if (!u) return false
