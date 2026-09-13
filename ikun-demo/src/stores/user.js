@@ -1,46 +1,77 @@
 import { defineStore } from 'pinia'
+import { load, save } from './db'
 import { useAdminStore } from './admin'
 
-const STORAGE_KEY = 'ikun-demo-user-v1'
+const KEY = 'session'
 
 export function dayKey(d = new Date()) {
   const p = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
-// 预置 12 天打卡(不含今天):让演示账号出生即 Lv1 外门弟子,可直接体验打卡与升级进度
-function seedCheckins(n = 12) {
-  const days = []
-  for (let i = n; i >= 1; i--) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    days.push(dayKey(d))
-  }
-  return days
-}
-
+// —— 会话 store:只存一个指针(当前昵称),其余全部透传 users 表 ——
+// 登录 = 指针指向表记录;打卡/发帖/改资料 = 改表记录;后台读同一份,永远实时
 export const useUserStore = defineStore('user', {
   state: () => ({
-    isLoggedIn: false,
-    phone: '',
-    email: '',
-    nickname: '',
-    avatarType: 'default', // default | custom
-    avatarCode: '',
-    customAvatar: '',
-    idNumber: '',
-    joinedAt: '',
-    checkins: [],
-    featured: 0, // 加精帖数
-    contributionBonus: 0, // 发帖/评论赞等额外贡献值
-    hasIdCard: false,
-    roleType: 'user', // user | core_elder | grand_elder
+    current: '', // 当前登录昵称
   }),
 
   getters: {
-    checkinDays: (s) => s.checkins.length,
-    contribution: (s) => s.checkins.length * 5 + s.contributionBonus,
-    checkedToday: (s) => s.checkins.includes(dayKey()),
+    rec() {
+      const admin = useAdminStore()
+      return admin.byNickname(this.current)
+    },
+    isLoggedIn() {
+      return !!this.rec
+    },
+    banned() {
+      return this.rec?.banned || false
+    },
+    nickname() {
+      return this.rec?.nickname || ''
+    },
+    idNumber() {
+      return this.rec?.idNumber || ''
+    },
+    roleType() {
+      return this.rec?.roleType || 'user'
+    },
+    avatarCode() {
+      return this.rec?.avatarCode || ''
+    },
+    avatarType() {
+      return this.rec?.avatarType || 'default'
+    },
+    customAvatar() {
+      return this.rec?.customAvatar || ''
+    },
+    phone() {
+      return this.rec?.phone || ''
+    },
+    email() {
+      return this.rec?.email || ''
+    },
+    joinedAt() {
+      return this.rec?.joinedAt || ''
+    },
+    hasIdCard() {
+      return this.rec?.hasIdCard || false
+    },
+    checkins() {
+      return this.rec?.checkins || []
+    },
+    checkinDays() {
+      return this.checkins.length
+    },
+    contribution() {
+      return this.rec?.contribution || 0
+    },
+    featured() {
+      return this.rec?.featured || 0
+    },
+    checkedToday() {
+      return this.checkins.includes(dayKey())
+    },
     stats() {
       return {
         checkinDays: this.checkinDays,
@@ -51,34 +82,35 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
-    // 昵称 + 密码登录(users 表校验,按账号档案 hydrate 会话)
+    persist() {
+      save(KEY, { current: this.current })
+    },
+    restore() {
+      const d = load(KEY)
+      this.current = d?.current || ''
+      // 会话有效性:记录存在且未封禁
+      if (this.current && !this.rec) this.current = ''
+      if (this.current && this.banned) this.current = ''
+    },
+    logout() {
+      this.current = ''
+      this.persist()
+    },
+
+    // —— 昵称 + 密码登录 ——
     loginByPassword(nickname, password) {
       const admin = useAdminStore()
       admin.restore()
-      const u = admin.users.find((x) => x.nickname === nickname)
+      const u = admin.byNickname(nickname)
       if (!u) return { ok: false, msg: '昵称不存在,先注册' }
       if (u.password !== password) return { ok: false, msg: '密码错误' }
       if (u.banned) return { ok: false, msg: '该账号已被封禁,联系大长老' }
-
-      this.isLoggedIn = true
-      this.phone = u.phone || ''
-      this.email = u.email || ''
-      this.nickname = u.nickname
-      this.idNumber = u.idNumber
-      this.joinedAt = u.joinedAt
-      this.avatarType = 'default'
-      this.avatarCode = u.avatarCode
-      this.customAvatar = ''
-      this.checkins = seedCheckins(u.checkinDays || 0)
-      this.featured = u.featured || 0
-      this.contributionBonus = 0
-      this.hasIdCard = true
-      this.roleType = u.roleType
+      this.current = u.nickname
       this.persist()
       return { ok: true }
     },
 
-    // 注册:昵称全局唯一,写入 users 表;新号走选头像→领身份证流程
+    // —— 注册:昵称全局唯一,写入 users 表;新号走选头像→领身份证流程 ——
     registerAccount(nickname, password) {
       const admin = useAdminStore()
       admin.restore()
@@ -91,28 +123,13 @@ export const useUserStore = defineStore('user', {
       if ((password || '').length < 6) {
         return { ok: false, msg: '密码至少 6 位' }
       }
-      const rec = admin.registerAccount(nickname, password)
-
-      this.isLoggedIn = true
-      this.phone = ''
-      this.email = ''
-      this.nickname = rec.nickname
-      this.idNumber = rec.idNumber
-      this.joinedAt = rec.joinedAt
-      this.avatarType = 'default'
-      this.avatarCode = ''
-      this.customAvatar = ''
-      this.checkins = []
-      this.featured = 0
-      this.contributionBonus = 0
-      this.hasIdCard = false
-      this.roleType = rec.roleType
+      admin.registerAccount(nickname, password)
+      this.current = nickname
       this.persist()
       return { ok: true }
     },
 
-    // 第三方登录(微信/抖音):# ponytail: 模拟授权,真接入 = 跳开放平台授权页,
-    // 回调 code 由后端用 appSecret 换 openid(需企业资质+备案域名),替换本函数前半段即可
+    // —— 第三方登录(模拟授权;真接入 = 开放平台授权页 + 后端换 openid) ——
     oauthLogin(provider) {
       const key = 'ikun-oauth-' + provider
       let openid = localStorage.getItem(key)
@@ -125,75 +142,72 @@ export const useUserStore = defineStore('user', {
       let u = admin.findOAuthUser(provider, openid)
       if (!u) u = admin.registerOAuthUser(provider, openid)
       if (u.banned) return { ok: false, msg: '该账号已被封禁,联系大长老' }
-
-      this.isLoggedIn = true
-      this.phone = u.phone || ''
-      this.email = u.email || ''
-      this.nickname = u.nickname
-      this.idNumber = u.idNumber
-      this.joinedAt = u.joinedAt
-      this.avatarType = 'default'
-      this.avatarCode = u.avatarCode
-      this.customAvatar = ''
-      this.checkins = seedCheckins(u.checkinDays || 0)
-      this.featured = u.featured || 0
-      this.contributionBonus = 0
-      this.hasIdCard = u.level > 0 || u.checkinDays > 0 // 首次 OAuth 建号走新人流程
-      this.roleType = u.roleType
+      this.current = u.nickname
       this.persist()
-      return { ok: true, fresh: u.level === 0 && u.checkinDays === 0 }
+      return { ok: true, fresh: !u.hasIdCard }
     },
-    setNickname(name) {
-      const n = (name || '').trim()
-      if (!n) return false
-      this.nickname = n.slice(0, 12)
+
+    // —— 会话内改自己 ——
+    setNickname(n) {
+      const admin = useAdminStore()
+      const name = (n || '').trim()
+      if (!name) return false
+      if (admin.users.some((x) => x.nickname === name && x.nickname !== this.current)) return false
+      const u = admin.byNickname(this.current)
+      if (!u) return false
+      u.nickname = name
+      this.current = name
+      admin.persist()
       this.persist()
       return true
     },
-    addContribution(n) {
-      this.contributionBonus += n
-      this.persist()
-    },
-    setRole(roleType) {
-      this.roleType = roleType
-      this.persist()
-    },
-    setAvatar(code) {
-      this.avatarType = 'default'
-      this.avatarCode = code
-      this.persist()
-    },
-    setCustomAvatar(dataUrl) {
-      this.avatarType = 'custom'
-      this.customAvatar = dataUrl
-      this.persist()
-    },
-    issueCard() {
-      this.hasIdCard = true
-      this.persist()
-    },
     checkinToday() {
+      const admin = useAdminStore()
+      const u = admin.byNickname(this.current)
+      if (!u) return { ok: false, msg: '请先登录' }
       const key = dayKey()
-      if (this.checkins.includes(key)) return { ok: false, msg: '今天已经打卡过啦' }
-      this.checkins.push(key)
-      this.persist()
+      if (u.checkins.includes(key)) return { ok: false, msg: '今天已经打卡过啦' }
+      u.checkins.push(key)
+      u.contribution += 5 // 每日签到 +5(设计文档·六)
+      admin.persist()
       return { ok: true, contribution: 5 }
     },
-    persist() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.$state))
+    addContribution(n) {
+      const admin = useAdminStore()
+      const u = admin.byNickname(this.current)
+      if (!u) return
+      u.contribution += n
+      admin.persist()
     },
-    restore() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY)
-        if (raw) this.$patch(JSON.parse(raw))
-      } catch (e) {
-        // 缓存损坏时忽略,走全新注册流程
+    issueCard() {
+      const admin = useAdminStore()
+      const u = admin.byNickname(this.current)
+      if (u) {
+        u.hasIdCard = true
+        admin.persist()
+      }
+    },
+    setAvatar(code) {
+      const admin = useAdminStore()
+      const u = admin.byNickname(this.current)
+      if (u) {
+        u.avatarType = 'default'
+        u.avatarCode = code
+        admin.persist()
+      }
+    },
+    setCustomAvatar(dataUrl) {
+      const admin = useAdminStore()
+      const u = admin.byNickname(this.current)
+      if (u) {
+        u.avatarType = 'custom'
+        u.customAvatar = dataUrl
+        admin.persist()
       }
     },
     reset() {
-      localStorage.removeItem(STORAGE_KEY)
-      localStorage.removeItem('ikun-demo-border-v1')
-      this.$reset()
+      this.current = ''
+      this.persist()
     },
   },
 })

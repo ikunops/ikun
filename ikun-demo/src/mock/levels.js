@@ -31,3 +31,50 @@ export function resolveDiscipleLevel(stats) {
   }
   return hit
 }
+
+// —— 用户记录 → 等级呈现(唯一推导入口) ——
+// 优先级:管理员 levelOverride > 身份职级(大长老/核心长老) > 打卡数据推导
+const LV_BORDER = { 1: 'b-gray', 2: 'b-blue', 3: 'b-purple', 4: 'b-gold' }
+
+export function userStats(rec) {
+  return {
+    checkinDays: rec.checkins.length,
+    contribution: rec.contribution,
+    featured: rec.featured,
+  }
+}
+
+export function userLevel(rec) {
+  if (!rec) {
+    return { level: 0, subLevel: null, title: '未登录', color: '#d8d4c8', borderId: null, letters: 0 }
+  }
+  if (rec.levelOverride) {
+    const o = rec.levelOverride
+    return {
+      level: o.level,
+      subLevel: null,
+      title: o.title,
+      color: DISCIPLE_LEVELS.find((r) => r.level === o.level)?.color || '#ffc53d',
+      borderId: LV_BORDER[o.level] || null,
+      letters: o.level,
+    }
+  }
+  if (rec.roleType === 'grand_elder') {
+    return { level: 5, subLevel: '5.5', title: '大长老', color: '#ffb800', borderId: 'b-rainbow', letters: 4 }
+  }
+  if (rec.roleType === 'core_elder') {
+    return { level: 5, subLevel: '5.4', title: '核心长老', color: '#7c5cff', borderId: 'b-violet-gold', letters: 4 }
+  }
+  const rule = resolveDiscipleLevel(userStats(rec))
+  if (rule) {
+    return {
+      level: rule.level,
+      subLevel: null,
+      title: rule.title,
+      color: rule.color,
+      borderId: rule.borderId,
+      letters: rule.letters,
+    }
+  }
+  return { level: 0, subLevel: null, title: '预备弟子', color: '#d8d4c8', borderId: null, letters: 0 }
+}
