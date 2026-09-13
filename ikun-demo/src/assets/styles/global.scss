@@ -1,0 +1,274 @@
+@use '@/assets/styles/variables.scss';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'HarmonyOS Sans SC',
+    'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+// 细滚动条(桌面)
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(29, 27, 40, 0.28);
+    border-radius: 999px;
+    border: 3px solid var(--bg);
+
+    &:hover {
+      background: rgba(29, 27, 40, 0.45);
+    }
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+// —— 断点约定:手机 <768px / 平板 768-1199px / 桌面 ≥1200px ——
+// —— 基础件:白卡 + 细线 + 柔和多层阴影(现代社区风) ——
+.ik-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.ik-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 12px 22px;
+  background: var(--brand-grad);
+  color: #221a05;
+  font-size: 15px;
+  font-weight: 800;
+  border: none;
+  border-radius: 14px;
+  box-shadow:
+    0 4px 14px rgba(255, 176, 31, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  user-select: none;
+
+  &:hover {
+    filter: brightness(1.03);
+    box-shadow:
+      0 6px 20px rgba(255, 176, 31, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.985);
+    box-shadow: 0 2px 8px rgba(255, 176, 31, 0.3);
+  }
+
+  &.is-disabled {
+    background: var(--line-soft);
+    color: var(--gray);
+    box-shadow: none;
+    pointer-events: none;
+  }
+
+  &.is-block {
+    display: flex;
+    width: 100%;
+  }
+
+  &.ghost {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+
+    &:hover {
+      background: #fbfaf6;
+    }
+  }
+}
+
+.ik-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  background: rgba(29, 27, 40, 0.045);
+  border-radius: 999px;
+}
+
+// 区块标题:极简(黄色小竖标 + 排版)
+.ik-sec {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 18px 0 10px;
+
+  b {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 16px;
+    font-weight: 800;
+
+    &::before {
+      content: '';
+      width: 4px;
+      height: 15px;
+      background: var(--brand-grad);
+      border-radius: 2px;
+    }
+  }
+
+  span {
+    font-size: 11px;
+    color: var(--gray);
+  }
+}
+
+// 页面通用留白:手机全宽,平板居中限宽,桌面再放宽并给左侧导航栏让位
+.page {
+  padding: 14px 14px calc(88px + env(safe-area-inset-bottom));
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.fullpage {
+  min-height: 100vh;
+}
+
+.mono {
+  font-family: 'SF Mono', 'JetBrains Mono', Consolas, monospace;
+  letter-spacing: 1px;
+}
+
+@media (min-width: 768px) {
+  .page {
+    padding-top: 24px;
+    padding-bottom: 40px;
+  }
+}
+
+@media (min-width: 1200px) {
+  // 桌面:左侧导航栏占位,内容列放宽
+  .app-shell {
+    padding-left: 96px;
+  }
+
+  .page {
+    max-width: 1080px;
+    padding: 32px 32px 56px;
+  }
+}
+
+// —— 公共动画 ——
+@keyframes ik-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes ik-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes ik-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes ik-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ik-sweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ik-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.75);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes ik-pulse-ring {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 2px rgba(255, 184, 0, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 9px rgba(255, 184, 0, 0.95));
+  }
+}
+
+// 无障碍:跟随系统减弱动效
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

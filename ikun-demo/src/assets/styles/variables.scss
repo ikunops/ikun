@@ -1,0 +1,51 @@
+// ikun 社区 · 设计变量(全局 CSS 自定义属性在此定义,组件内统一用 var() 取值)
+$ink: #262338; // 墨色(正文)
+$bg: #f6f5f1; // 中性暖灰底
+$card: #ffffff;
+$yellow: #ffc53d; // 坤鸡黄(主色)
+$yellow-deep: #f5a623;
+$red: #ff5a5f; // 强调红
+$orange: #ff9f43;
+$purple: #7c5cff;
+$gold: #ffb800;
+$blue: #4da3ff;
+$cyan: #2ec5d3;
+$green: #35c48d;
+$gray: #b9b5c4;
+$text: #262338;
+$text-2: #7a768c;
+
+:root {
+  --ink: #{$ink};
+  --bg: #{$bg};
+  --card: #{$card};
+  --yellow: #{$yellow};
+  --yellow-deep: #{$yellow-deep};
+  --red: #{$red};
+  --orange: #{$orange};
+  --purple: #{$purple};
+  --gold: #{$gold};
+  --blue: #{$blue};
+  --cyan: #{$cyan};
+  --green: #{$green};
+  --gray: #{$gray};
+  --line-soft: #efece3;   // 弱分隔线/禁用底
+  --paper-warm: #fff3d6;  // 暖纸(坤鸡黄浅底)
+  --cream: #fffbe9;       // 奶油高亮底
+  --text: #{$text};
+  --text-2: #{$text-2};
+
+  // 线与阴影:现代柔和体系(替代粗描边+硬投影)
+  --line: rgba(29, 27, 40, 0.07);
+  --line-strong: rgba(29, 27, 40, 0.14);
+  --shadow-sm: 0 1px 3px rgba(29, 27, 40, 0.06), 0 2px 10px rgba(29, 27, 40, 0.05);
+  --shadow-md: 0 2px 8px rgba(29, 27, 40, 0.07), 0 12px 32px rgba(29, 27, 40, 0.1);
+  --shadow-lg: 0 4px 14px rgba(29, 27, 40, 0.1), 0 18px 48px rgba(29, 27, 40, 0.12);
+  --brand-grad: linear-gradient(160deg, #ffd24d 0%, #ffb01f 100%);
+
+  // Vant 4 主题变量对齐
+  --van-primary-color: #{$yellow-deep};
+  --van-text-color: #{$text};
+  --van-field-label-color: #{$text};
+  --van-cell-background: transparent;
+}
