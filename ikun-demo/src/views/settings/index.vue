@@ -13,7 +13,7 @@ const admin = useAdminStore()
 admin.restore()
 
 const nick = ref(user.nickname)
-const rec = admin.users.find((x) => x.username === user.username)
+const rec = admin.users.find((x) => x.nickname === user.nickname)
 const phone = ref(rec?.phone || '')
 const email = ref(rec?.email || '')
 const pw1 = ref('')
@@ -21,7 +21,7 @@ const pw2 = ref('')
 
 function saveNick() {
   if (user.setNickname(nick.value)) {
-    const u = admin.users.find((x) => x.username === user.username)
+    const u = admin.users.find((x) => x.nickname === user.nickname)
     if (u) u.nickname = user.nickname
     admin.persist()
     showToast('昵称已更新')
@@ -39,14 +39,14 @@ function savePassword() {
     showToast('两次密码不一致')
     return
   }
-  admin.setOwnPassword(user.username, pw1.value)
+  admin.setOwnPassword(user.nickname, pw1.value)
   pw1.value = ''
   pw2.value = ''
   showToast('密码已更新')
 }
 
 function saveContact() {
-  admin.updateContact(user.username, { phone: phone.value.trim(), email: email.value.trim() })
+  admin.updateContact(user.nickname, { phone: phone.value.trim(), email: email.value.trim() })
   user.phone = phone.value.trim()
   user.email = email.value.trim()
   showToast('联系方式已保存')

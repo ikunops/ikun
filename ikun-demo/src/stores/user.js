@@ -22,7 +22,6 @@ function seedCheckins(n = 12) {
 export const useUserStore = defineStore('user', {
   state: () => ({
     isLoggedIn: false,
-    username: '',
     phone: '',
     email: '',
     nickname: '',
@@ -53,17 +52,15 @@ export const useUserStore = defineStore('user', {
 
   actions: {
     // 昵称 + 密码登录(users 表校验,按账号档案 hydrate 会话)
-    loginByPassword(username, password) {
+    loginByPassword(nickname, password) {
       const admin = useAdminStore()
       admin.restore()
-      const u = admin.users.find((x) => x.username === username)
+      const u = admin.users.find((x) => x.nickname === nickname)
       if (!u) return { ok: false, msg: '昵称不存在,先注册' }
       if (u.password !== password) return { ok: false, msg: '密码错误' }
       if (u.banned) return { ok: false, msg: '该账号已被封禁,联系大长老' }
-      if (u.id === 0) return { ok: false, msg: '宗主为保留席位,不可登录' }
 
       this.isLoggedIn = true
-      this.username = u.username
       this.phone = u.phone || ''
       this.email = u.email || ''
       this.nickname = u.nickname
@@ -81,23 +78,22 @@ export const useUserStore = defineStore('user', {
       return { ok: true }
     },
 
-    // 注册:昵称即用户名,写入 users 表;新号走选头像→领身份证流程
-    registerAccount(username, password) {
+    // 注册:昵称全局唯一,写入 users 表;新号走选头像→领身份证流程
+    registerAccount(nickname, password) {
       const admin = useAdminStore()
       admin.restore()
-      if (!/^[\u4e00-\u9fa5\w·]{2,12}$/.test(username)) {
+      if (!/^[\u4e00-\u9fa5\w·]{2,12}$/.test(nickname)) {
         return { ok: false, msg: '昵称 2-12 位(中文/字母/数字)' }
       }
-      if (admin.users.some((x) => x.username === username)) {
+      if (admin.users.some((x) => x.nickname === nickname)) {
         return { ok: false, msg: '该昵称已被占用' }
       }
       if ((password || '').length < 6) {
         return { ok: false, msg: '密码至少 6 位' }
       }
-      const rec = admin.registerAccount(username, password)
+      const rec = admin.registerAccount(nickname, password)
 
       this.isLoggedIn = true
-      this.username = rec.username
       this.phone = ''
       this.email = ''
       this.nickname = rec.nickname
@@ -110,14 +106,9 @@ export const useUserStore = defineStore('user', {
       this.featured = 0
       this.contributionBonus = 0
       this.hasIdCard = false
-      this.roleType = 'user'
+      this.roleType = rec.roleType
       this.persist()
       return { ok: true }
-    },
-
-    // 大长老快捷登录 = 表账号直达
-    loginAsElder() {
-      return this.loginByPassword('大长老', '123456')
     },
 
     // 第三方登录(微信/抖音):# ponytail: 模拟授权,真接入 = 跳开放平台授权页,
@@ -136,7 +127,6 @@ export const useUserStore = defineStore('user', {
       if (u.banned) return { ok: false, msg: '该账号已被封禁,联系大长老' }
 
       this.isLoggedIn = true
-      this.username = u.username
       this.phone = u.phone || ''
       this.email = u.email || ''
       this.nickname = u.nickname

@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ACTIVITIES } from '@/mock/activities'
 import { BOARDS } from '@/mock/boards'
-import { SEED_USERS } from '@/mock/users'
 import {
   BORDERS as BORDERS_SEED,
   registerCustomBorders,
@@ -47,10 +46,6 @@ export const ROLE_LABEL = {
 export const HOT_POST_LIKES = 100
 
 // users 表镜像:被管理用户(演示数据,宗主/大长老保留号不可封)
-function seedUsers() {
-  return SEED_USERS.map((u) => ({ banned: false, ...u }))
-}
-
 export const useAdminStore = defineStore('admin', {
   state: () => ({
     users: [],
@@ -83,6 +78,10 @@ export const useAdminStore = defineStore('admin', {
         if (raw) {
           const d = JSON.parse(raw)
           this.users = d.users || []
+          // v1 迁移:旧版演示表(记录带 username 字段)作废,编号从首位注册重新开始
+          if (this.users.some((u) => u.username !== undefined)) {
+            this.users = []
+          }
           this.approvals = d.approvals || []
           this.logs = d.logs || []
           this.activities = d.activities || []
@@ -131,12 +130,17 @@ export const useAdminStore = defineStore('admin', {
 
     setRole(userId, roleType) {
       const u = this.users.find((x) => x.id === userId)
-      if (!u || u.reserved) return false
+      if (!u) return false
       u.roleType = roleType
       if (roleType === 'core_elder') {
         u.level = 5
         u.subLevel = '5.4'
         u.title = '核心长老'
+      }
+      if (roleType === 'grand_elder') {
+        u.level = 5
+        u.subLevel = '5.5'
+        u.title = '大长老'
       }
       this.log(`将「${u.nickname}」设为 ${ROLE_LABEL[roleType] || roleType}`)
       this.persist()
@@ -144,21 +148,23 @@ export const useAdminStore = defineStore('admin', {
     },
 
     // 注册:昵称即用户名,进 users 表(后台用户管理可见)
-    registerAccount(username, password) {
+    // 注册:昵称即登录名(全局唯一),按注册顺序分配身份编号
+    // 第 1 个注册 = IKUN-000001,自动就任大长老(身份职级)
+    registerAccount(nickname, password) {
       const id = Math.max(0, ...this.users.map((u) => u.id)) + 1
+      const first = this.users.length === 0
       const rec = {
         id,
-        username,
+        nickname,
         password, // # ponytail: 明文演示,接后端换 bcrypt
         phone: '',
         email: '',
         idNumber: 'IKUN-' + String(id).padStart(6, '0'),
-        nickname: username,
-        roleType: 'user',
+        roleType: first ? 'grand_elder' : 'user',
         avatarCode: 'A01',
-        subLevel: null,
-        title: '预备弟子',
-        level: 0,
+        subLevel: first ? '5.5' : null,
+        title: first ? '大长老' : '预备弟子',
+        level: first ? 5 : 0,
         checkinDays: 0,
         contribution: 0,
         featured: 0,
@@ -166,7 +172,11 @@ export const useAdminStore = defineStore('admin', {
         banned: false,
       }
       this.users.push(rec)
-      this.log(`新用户注册「${username}」(${rec.idNumber})`)
+      this.log(
+        first
+          ? `首位注册用户「${nickname}」获得 IKUN-000001,自动就任大长老`
+          : `新用户注册「${nickname}」(${rec.idNumber})`
+      )
       this.persist()
       return rec
     },
@@ -182,7 +192,6 @@ export const useAdminStore = defineStore('admin', {
       const tag = openid.slice(-4)
       const rec = {
         id,
-        username: (provider === 'wechat' ? '微信用户_' : '抖音用户_') + tag,
         password: Math.random().toString(36).slice(2), // 随机密码,该账号仅第三方登录
         phone: '',
         email: '',
@@ -210,9 +219,9 @@ export const useAdminStore = defineStore('admin', {
       return this.users.find((x) => x.provider === provider && x.openid === openid) || null
     },
 
-    // 本人改密(保留号也可,绕开 reserved 只读)
-    setOwnPassword(username, password) {
-      const u = this.users.find((x) => x.username === username)
+    // 本人改密
+    setOwnPassword(nickname, password) {
+      const u = this.users.find((x) => x.nickname === nickname)
       if (!u) return false
       u.password = password
       this.log(`「${u.nickname}」修改了自己的密码`)
@@ -220,8 +229,8 @@ export const useAdminStore = defineStore('admin', {
       return true
     },
 
-    updateContact(username, { phone, email }) {
-      const u = this.users.find((x) => x.username === username)
+    updateContact(nickname, { phone, email }) {
+      const u = this.users.find((x) => x.nickname === nickname)
       if (!u) return false
       if (phone !== undefined) u.phone = phone
       if (email !== undefined) u.email = email
