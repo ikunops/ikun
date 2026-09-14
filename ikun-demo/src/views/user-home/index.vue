@@ -18,7 +18,7 @@ import AvatarWithBorder from '@/components/AvatarWithBorder.vue'
 import IkonBadge from '@/components/IkonBadge.vue'
 import IdCard from '@/components/IdCard.vue'
 import PostCard from '@/components/PostCard.vue'
-import { formatTime, commentCount, usePostsStore } from '@/stores/posts'
+import { formatTime, usePostsStore } from '@/stores/posts'
 import { useUserStore } from '@/stores/user'
 import { useAdminStore } from '@/stores/admin'
 import { useBorderStore } from '@/stores/border'
@@ -107,7 +107,7 @@ function cycleVis(p) {
           <span v-if="rec" class="no mono">{{ rec.idNumber }}</span>
           <span v-else class="no">未入驻 · 内容快照</span>
           <div class="chips">
-            <span class="ik-chip" :style="{ background: lvl.color, color: '#fff' }">{{ rec ? lvl.title : '游客' }}</span>
+            <span class="ik-chip" :style="{ background: lvl.color, color: '#221a05' }">{{ rec ? lvl.title : '游客' }}</span>
             <span v-if="rec" class="ik-chip">Lv.{{ lvl.subLevel || lvl.level }}</span>
           </div>
         </div>
@@ -238,7 +238,7 @@ function cycleVis(p) {
     </template>
 
     <!-- 自己主页:右下角设置按钮 -->
-    <button v-if="isSelf" class="fab" @click="router.push('/settings')">
+    <button v-if="isSelf" class="fab" aria-label="设置" title="设置" @click="router.push('/settings')">
       <Settings :size="22" :stroke-width="2.4" />
     </button>
   </div>

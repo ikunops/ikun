@@ -122,7 +122,7 @@ const mine = computed(() => props.post.author?.avatarType === 'custom')
   padding: 1px 8px;
   font-size: 10px;
   font-weight: 700;
-  color: #fff;
+  color: #221a05;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
 }
