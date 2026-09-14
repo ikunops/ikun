@@ -1,5 +1,5 @@
 <script setup>
-// 用户主页:/u/:nickname —— 自己=「我的」(含可见性管理),他人=只看公开内容
+// 用户主页:/u/:nickname —— 自己=「我的」(身份证卡+可见性管理),他人=只看公开内容
 // tabs:动态 / 评论 / 收藏 / 活动
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -9,17 +9,19 @@ import {
   Bookmark,
   Flag,
   Settings,
-  ShieldCheck,
+  Contact,
   Globe,
   UsersRound,
   Lock,
 } from 'lucide-vue-next'
 import AvatarWithBorder from '@/components/AvatarWithBorder.vue'
 import IkonBadge from '@/components/IkonBadge.vue'
+import IdCard from '@/components/IdCard.vue'
 import PostCard from '@/components/PostCard.vue'
 import { formatTime, commentCount, usePostsStore } from '@/stores/posts'
 import { useUserStore } from '@/stores/user'
 import { useAdminStore } from '@/stores/admin'
+import { useBorderStore } from '@/stores/border'
 import { userLevel } from '@/mock/levels'
 
 const route = useRoute()
@@ -27,14 +29,20 @@ const router = useRouter()
 const posts = usePostsStore()
 const user = useUserStore()
 const admin = useAdminStore()
+const border = useBorderStore()
 
 posts.restore()
 admin.restore()
+onMounted(() => border.syncDefault())
 
 const nick = computed(() => decodeURIComponent(route.params.name))
 const isSelf = computed(() => nick.value === user.nickname)
 const rec = computed(() => admin.byNickname(nick.value)) // 未入驻用户(纯快照)为 null
 const lvl = computed(() => userLevel(rec.value))
+// 自己用「已装备边框」,他人等级边框
+const borderId = computed(() =>
+  isSelf.value ? border.currentId || lvl.value.borderId || 'b-gray' : lvl.value.borderId || 'b-gray'
+)
 
 // 头部信息:入驻用户取表记录;游民取最近一条帖子快照
 const ghost = computed(() => {
@@ -91,7 +99,7 @@ function cycleVis(p) {
           :avatar-code="rec?.avatarCode || ghost?.avatarCode || 'A01'"
           :avatar-type="rec?.avatarType || 'default'"
           :custom-avatar="rec?.customAvatar || ''"
-          :border-id="rec ? userLevel(rec).borderId || 'b-gray' : 'b-gray'"
+          :border-id="borderId"
           :size="72"
         />
         <div class="head-info">
@@ -109,6 +117,27 @@ function cycleVis(p) {
         <span>动态 {{ myPosts.length }} · 评论 {{ myComments.length }} · 收藏 {{ myFavs.length }}</span>
         <span v-if="rec">入教 {{ rec.joinedAt }}</span>
       </div>
+    </div>
+
+    <!-- 身份证入口(仅自己) -->
+    <div v-if="isSelf && rec" class="idc-entry" @click="router.push('/id-card')">
+      <div class="idc-wrap">
+        <IdCard
+          :nickname="rec.nickname"
+          :id-number="rec.idNumber"
+          :avatar-code="rec.avatarCode"
+          :avatar-type="rec.avatarType"
+          :custom-avatar="rec.customAvatar"
+          :border-id="borderId"
+          :title="lvl.title"
+          :color="lvl.color"
+          :lv-label="`Lv.${lvl.subLevel || lvl.level}`"
+          :letters="lvl.letters"
+          :joined-at="rec.joinedAt"
+          :stamped="true"
+        />
+      </div>
+      <p class="idc-hint"><Contact :size="13" :stroke-width="2.4" /> 点击查看身份证大图(可翻面)</p>
     </div>
 
     <!-- tabs -->
@@ -259,6 +288,23 @@ function cycleVis(p) {
     justify-content: space-between;
     margin-top: 12px;
     font-size: 11px;
+    color: var(--text-2);
+  }
+}
+
+// 身份证入口卡
+.idc-entry {
+  margin-top: 12px;
+  cursor: pointer;
+
+  .idc-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 8px;
+    font-size: 11px;
+    font-weight: 700;
     color: var(--text-2);
   }
 }

@@ -50,6 +50,7 @@ const routes = [
     path: '/u/:name',
     name: 'user-home',
     component: () => import('@/views/user-home/index.vue'),
+    meta: { tab: true },
   },
   // 旧入口(我的页 / 我的内容页)已并入用户主页,一律重定向到自己
   { path: '/profile', redirect: () => '/u/' + encodeURIComponent(useUserStore().nickname) },
