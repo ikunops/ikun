@@ -1,8 +1,8 @@
 <script setup>
-// 启动页:坤鸡弹跳 + ikun 字母逐个点亮,2.2s 后自动进入
+// 启动页:品牌小鸡弹跳 + ikun 字母逐个点亮,2.2s 后自动进入
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import KunChicken from '@/components/KunChicken.vue'
+import splashLogo from '@/assets/images/splash-logo.png'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -18,7 +18,7 @@ onMounted(() => setTimeout(go, 2200))
 <template>
   <div class="splash" @click="go">
     <div class="logo">
-      <KunChicken bg="#fffdf5" />
+      <img :src="splashLogo" alt="ikun社区" />
     </div>
     <h1 class="name">ikun社区</h1>
     <p class="slogan">天下ikun是一家</p>
@@ -52,6 +52,13 @@ onMounted(() => setTimeout(go, 2200))
   box-shadow: var(--shadow-lg);
   overflow: hidden;
   animation: ik-bounce 1.4s ease-in-out infinite;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
 }
 
 .name {
